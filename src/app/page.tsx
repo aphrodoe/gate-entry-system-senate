@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import { BrowserMultiFormatReader } from "@zxing/browser";
-
-const BarcodeScanner = dynamic(() => import("react-qr-barcode-scanner"), { ssr: false });
 
 type StudentType = {
   rollNo: string;
@@ -40,13 +37,6 @@ export default function Home() {
     }
   };
 
-  const handleScan = async (scanData: { text: string } | null) => {
-    if (scanData && scanData.text && scanData.text !== data) {
-      setData(scanData.text);
-      fetchStudent(scanData.text);
-    }
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setFile(e.target.files[0]);
@@ -75,45 +65,66 @@ export default function Home() {
   };
 
   return (
-    <main style={{ padding: "20px" }}>
-      <h1>Gate Entry System</h1>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6 font-sans">
+      
 
-      <div style={{ maxWidth: "400px" }}>
-        <BarcodeScanner
-          onUpdate={(_, result) => {
-            if (result) handleScan({ text: result.getText() });
-          }}
+      <div className="bg-gray-800 shadow-2xl rounded-xl p-8 w-full max-w-lg">
+        <h3 className="text-xl font-semibold mb-6">
+          Upload Barcode Image
+        </h3>
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="block w-full text-sm text-gray-300 border border-gray-600 rounded-lg cursor-pointer bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 p-3 mb-5"
         />
+
+        <button
+          onClick={handleDecodeFile}
+          disabled={!file}
+          className={`w-full py-3 px-4 rounded-lg text-white text-lg font-medium transition ${
+            file
+              ? "bg-blue-600 hover:bg-blue-700"
+              : "bg-gray-600 cursor-not-allowed"
+          }`}
+        >
+          Scan
+        </button>
+
+        {error && (
+          <p className="text-red-400 font-semibold mt-4">{error}</p>
+        )}
+
+        {student && (
+          <div className="mt-8 text-center">
+            <div className="flex justify-center">
+              <Image
+                src={student.photoUrl}
+                alt="Student"
+                width={180}
+                height={180}
+                className="rounded-2xl object-cover shadow-lg border-4 border-gray-700"
+              />
+            </div>
+            <p className="mt-5 text-2xl font-bold">{student.name}</p>
+            <p className="text-gray-400 text-lg">Roll No: {student.rollNo}</p>
+            <p className="mt-3 text-xl">
+              Status:{" "}
+              <span
+                className={`font-bold ${
+                  student.outsideCampus ? "text-red-400" : "text-green-400"
+                }`}
+              >
+                {student.outsideCampus ? "Outside" : "Inside"}
+              </span>
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Last Updated: {new Date(student.lastToggledAt).toLocaleString()}
+            </p>
+          </div>
+        )}
       </div>
-
-      <h3>Or Upload Barcode Image</h3>
-      <input type="file" accept="image/*" onChange={handleFileChange} />
-      <button onClick={handleDecodeFile} disabled={!file}>
-        Decode from Image
-      </button>
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {student && (
-        <div style={{ marginTop: "20px" }}>
-          <Image
-            src={student.photoUrl}
-            alt="Student"
-            width={120}
-            height={120}
-            style={{ objectFit: "cover" }}
-          />
-          <p>Name: {student.name}</p>
-          <p>Roll No: {student.rollNo}</p>
-          <p>
-            Status:{" "}
-            <span style={{ color: student.outsideCampus ? "red" : "green" }}>
-              {student.outsideCampus ? "Outside" : "Inside"}
-            </span>
-          </p>
-          <p>Last Updated: {new Date(student.lastToggledAt).toLocaleString()}</p>
-        </div>
-      )}
     </main>
   );
 }
