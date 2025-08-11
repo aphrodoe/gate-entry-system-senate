@@ -6,15 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "ts-node --project tsconfig.json --compiler-options '{\"module\":\"CommonJS\"}' src/scripts/seed.ts"
   },
   "dependencies": {
+    "dotenv": "^17.2.1",
     "jsbarcode": "^3.12.1",
     "mongoose": "^8.17.1",
     "next": "15.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-qr-barcode-scanner": "^2.1.8"
+    "react-qr-barcode-scanner": "^2.1.8",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
