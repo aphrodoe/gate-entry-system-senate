@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST="{\"app/page.tsx -> react-qr-barcode-scanner\":{\"id\":\"app/page.tsx -> react-qr-barcode-scanner\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_react-qr-barcode-scanner_dist_index_js.js\"]}}"
