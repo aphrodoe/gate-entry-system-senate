@@ -10,6 +10,7 @@
     "seed": "ts-node --project tsconfig.json --compiler-options '{\"module\":\"CommonJS\"}' src/scripts/seed.ts"
   },
   "dependencies": {
+    "@zxing/browser": "^0.1.5",
     "dotenv": "^17.2.1",
     "jsbarcode": "^3.12.1",
     "mongoose": "^8.17.1",

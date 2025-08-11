@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 
@@ -18,26 +18,29 @@ export default function Home() {
   const [data, setData] = useState("");
   const [student, setStudent] = useState<StudentType | null>(null);
   const [error, setError] = useState("");
+  const lastScannedRef = useRef<number>(0);
 
-  const handleScan = async (scanData: { text: string } | null) => {
-    if (scanData && scanData.text && scanData.text !== data) {
-      setData(scanData.text);
-      try {
-        const res = await fetch("/api/scan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rollNo: scanData.text }),
-        });
-        const result = await res.json();
-        if (res.ok) {
-          setStudent(result);
-          setError("");
-        } else {
-          setError(result.error);
-        }
-      } catch {
-        setError("Failed to connect to server");
+  const handleScan = async (rollNo: string) => {
+    const now = Date.now();
+    if (now - lastScannedRef.current < 2000) return; 
+    lastScannedRef.current = now;
+
+    try {
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rollNo }),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        setStudent(result);
+        setError("");
+      } else {
+        setError(result.error);
       }
+    } catch {
+      setError("Failed to connect to server");
     }
   };
 
@@ -46,8 +49,17 @@ export default function Home() {
       <h1>Gate Entry System</h1>
       <div style={{ maxWidth: "400px" }}>
         <BarcodeScanner
+          width={400}
+          height={300}
+          facingMode="environment"
           onUpdate={(_, result) => {
-            if (result) handleScan({ text: result.getText() });
+            if (result) {
+              const scanned = result.getText();
+              if (scanned && scanned !== data) {
+                setData(scanned);
+                handleScan(scanned);
+              }
+            }
           }}
         />
       </div>
