@@ -58,9 +58,12 @@ export default function Home() {
 
       const constraints = {
         video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'environment' // Prefer back camera
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          facingMode: 'environment', // Prefer back camera
+          focusMode: 'continuous',
+          exposureMode: 'continuous',
+          whiteBalanceMode: 'continuous'
         }
       };
 
@@ -86,15 +89,20 @@ export default function Home() {
 
     if (!context) return;
 
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Use higher resolution for better barcode detection
+    const scale = 2; // Increase resolution
+    canvas.width = video.videoWidth * scale;
+    canvas.height = video.videoHeight * scale;
 
+    // Improve image quality
+    context.imageSmoothingEnabled = false;
+    context.scale(scale, scale);
+    
     // Draw the video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
 
-    // Convert to base64 image
-    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    // Convert to PNG for better quality (less compression)
+    const imageDataUrl = canvas.toDataURL('image/png');
     setCapturedImage(imageDataUrl);
 
     // Stop the camera
@@ -114,22 +122,116 @@ export default function Home() {
       const img = new window.Image();
       img.onload = async () => {
         try {
-          const result = await codeReader.decodeFromImageElement(img);
-          const scannedText = result.getText();
-          console.log('Barcode detected:', scannedText);
-          setData(scannedText);
-          await fetchStudent(scannedText);
+          let result = null;
+          let scannedText = "";
+
+          console.log('Image loaded, dimensions:', img.width, 'x', img.height);
+
+          // Strategy 1: Direct decode
+          try {
+            result = await codeReader.decodeFromImageElement(img);
+            scannedText = result.getText();
+            console.log('Barcode detected (direct):', scannedText);
+          } catch (directError) {
+            console.log('Direct decode failed:', (directError instanceof Error ? directError.message : String(directError)));
+            
+            // Strategy 2: Try multiple canvas preprocessing techniques
+            const strategies = [
+              { name: 'Enhanced Contrast', filter: 'contrast(200%) brightness(120%)' },
+              { name: 'High Contrast B&W', filter: 'contrast(300%) brightness(100%) grayscale(100%)' },
+              { name: 'Inverted', filter: 'invert(1) contrast(150%)' },
+              { name: 'Sharpened', filter: 'contrast(150%) brightness(110%) saturate(0%) blur(0px)' }
+            ];
+
+            for (const strategy of strategies) {
+              try {
+                console.log(`Trying ${strategy.name}...`);
+                
+                const tempCanvas = document.createElement('canvas');
+                const tempContext = tempCanvas.getContext('2d');
+                
+                if (tempContext) {
+                  // Use original image dimensions
+                  tempCanvas.width = img.width;
+                  tempCanvas.height = img.height;
+                  
+                  // Apply filter and draw
+                  tempContext.filter = strategy.filter;
+                  tempContext.drawImage(img, 0, 0);
+                  
+                  // Try to decode
+                  result = await codeReader.decodeFromCanvas(tempCanvas);
+                  scannedText = result.getText();
+                  console.log(`Barcode detected with ${strategy.name}:`, scannedText);
+                  break; // Success, exit loop
+                }
+              } catch (strategyError) {
+                console.log(
+                  `${strategy.name} failed:`,
+                  strategyError instanceof Error ? strategyError.message : String(strategyError)
+                );
+                continue; // Try next strategy
+              }
+            }
+
+            // If all strategies failed, try cropping the center area
+            if (!scannedText) {
+              try {
+                console.log('Trying center crop...');
+                const tempCanvas = document.createElement('canvas');
+                const tempContext = tempCanvas.getContext('2d');
+                
+                if (tempContext) {
+                  // Crop center 80% of the image
+                  const cropSize = 0.8;
+                  const cropX = img.width * (1 - cropSize) / 2;
+                  const cropY = img.height * (1 - cropSize) / 2;
+                  const cropWidth = img.width * cropSize;
+                  const cropHeight = img.height * cropSize;
+                  
+                  tempCanvas.width = cropWidth;
+                  tempCanvas.height = cropHeight;
+                  
+                  tempContext.filter = 'contrast(200%) brightness(120%)';
+                  tempContext.drawImage(
+                    img, 
+                    cropX, cropY, cropWidth, cropHeight,  // Source crop
+                    0, 0, cropWidth, cropHeight           // Destination
+                  );
+                  
+                  result = await codeReader.decodeFromCanvas(tempCanvas);
+                  scannedText = result.getText();
+                  console.log('Barcode detected (cropped):', scannedText);
+                }
+              } catch (cropError) {
+                console.log(
+                  'Crop strategy failed:',
+                  cropError instanceof Error ? cropError.message : String(cropError)
+                );
+              }
+            }
+          }
+
+          if (scannedText) {
+            setData(scannedText);
+            await fetchStudent(scannedText);
+          } else {
+            // Just set a message instead of throwing error
+            setError("No barcode detected in the image. Please try retaking the photo or enter the roll number manually.");
+          }
         } catch (decodeError) {
           console.error('Decode error:', decodeError);
-          setError("No barcode found in the image. Please try again.");
+          setError("No barcode detected in the image. Please try retaking the photo or enter the roll number manually.");
         } finally {
           setIsProcessing(false);
         }
       };
+      
       img.onerror = () => {
         setError("Failed to process image");
         setIsProcessing(false);
       };
+      
       img.src = capturedImage;
     } catch (err) {
       console.error('Processing error:', err);
@@ -224,6 +326,9 @@ export default function Home() {
             <p className="text-center text-sm text-gray-400">
               Photo captured! Click "Scan Barcode" to process.
             </p>
+            <div className="text-xs text-gray-500 text-center">
+              Tips: Ensure barcode is clear, well-lit, and fills a good portion of the frame
+            </div>
             <div className="flex gap-3">
               <button
                 onClick={processImage}
@@ -246,7 +351,28 @@ export default function Home() {
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
         {error && (
-          <p className="text-red-400 font-semibold mt-4">{error}</p>
+          <div className="mt-4">
+            <p className="text-red-400 font-semibold whitespace-pre-line">{error}</p>
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-gray-400">Can't scan? Enter manually:</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter roll number"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                />
+                <button
+                  onClick={() => data && fetchStudent(data)}
+                  disabled={!data.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {student && (
