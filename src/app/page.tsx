@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { set } from "mongoose";
 
 type StudentType = {
   rollNo: string;
@@ -48,6 +49,9 @@ export default function Home() {
       setError("Failed to connect to the server");
     } finally {
       setIsLoading(false);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
     }
   };
 

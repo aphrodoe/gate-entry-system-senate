@@ -6,6 +6,7 @@ export interface IStudent extends Document {
   photoUrl: string;
   outsideCampus: boolean;
   lastToggledAt: Date;
+  allowed: boolean;
 }
 
 const studentSchema = new Schema<IStudent>({
@@ -13,7 +14,8 @@ const studentSchema = new Schema<IStudent>({
   name: { type: String, required: true },
   photoUrl: { type: String, required: true },
   outsideCampus: { type: Boolean, default: false },
-  lastToggledAt: { type: Date, default: Date.now }
+  lastToggledAt: { type: Date, default: Date.now },
+  allowed: { type: Boolean, default: true },
 });
 
 export const Student: Model<IStudent> =

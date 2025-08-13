@@ -1,10 +1,12 @@
 import mongoose, { Mongoose } from "mongoose";
+import dotenv from "dotenv";
 
 const MONGODB_URI: string = process.env.MONGODB_URI as string;
 
 if (!MONGODB_URI) {
   throw new Error("Please define MONGODB_URI in .env.local");
 }
+
 
 interface MongooseCache {
   conn: Mongoose | null;

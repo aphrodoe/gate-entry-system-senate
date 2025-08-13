@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Student } from "@/models/Student";
+import { Entry } from "@/models/Entry";
 import crypto from 'crypto';
 
 export async function POST(request: Request) {
@@ -69,9 +70,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    if (!student.allowed) {
+      console.warn("[SCANNER] Student is not allowed to toggle campus status:", cleanRollNo);
+      return NextResponse.json({ error: "Student is not allowed to exit campus" }, { status: 403 });
+    }
+
     student.outsideCampus = !student.outsideCampus;
     student.lastToggledAt = new Date();
     await student.save();
+
+    await Entry.create({
+      rollNo: student.rollNo,
+      outsideCampus: student.outsideCampus,
+      timestamp: student.lastToggledAt,
+      location: "Main Gate",      
+    });
 
     console.log("[SCANNER] Student updated:", student);
 

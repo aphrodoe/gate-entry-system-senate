@@ -8,32 +8,25 @@ async function seed() {
   try {
     await connectDB();
 
-    // Clear old data
     await Student.deleteMany({});
 
-    // Insert dummy data
     await Student.insertMany([
       {
-        rollNo: "101",
-        name: "Alice Johnson",
-        photoUrl: "https://randomuser.me/api/portraits/women/1.jpg",
+        rollNo: "B24CS1005",
+        name: "Akhil Dhyani",
+        photoUrl: "https://drive.google.com/uc?export=view&id=1QFnBdZbb_nwK1GrpOTRuwhvH5LdnqLub",
         outsideCampus: false,
         lastToggledAt: new Date(),
+        allowed: true,
       },
       {
-        rollNo: "102",
-        name: "Bob Smith",
-        photoUrl: "https://randomuser.me/api/portraits/men/2.jpg",
+        rollNo: "B24CS1027",
+        name: "Divyansh Yadav",
+        photoUrl: "https://drive.google.com/uc?export=view&id=1QFnBdZbb_nwK1GrpOTRuwhvH5LdnqLub",
         outsideCampus: false,
         lastToggledAt: new Date(),
-      },
-      {
-        rollNo: "103",
-        name: "Charlie Lee",
-        photoUrl: "https://randomuser.me/api/portraits/men/3.jpg",
-        outsideCampus: false,
-        lastToggledAt: new Date(),
-      },
+        allowed: false,
+      }
     ]);
 
     console.log("✅ Dummy students inserted successfully");
