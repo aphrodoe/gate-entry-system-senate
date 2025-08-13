@@ -12,10 +12,13 @@
   "dependencies": {
     "@zxing/browser": "^0.1.5",
     "dotenv": "^17.2.1",
+    "html-to-image": "^1.11.13",
     "jsbarcode": "^3.12.1",
     "mongoose": "^8.17.1",
     "next": "15.4.6",
+    "qrcode.react": "^4.2.0",
     "react": "19.1.0",
+    "react-barcode": "^1.6.1",
     "react-dom": "19.1.0",
     "react-qr-barcode-scanner": "^2.1.8",
     "ts-node": "^10.9.2"
